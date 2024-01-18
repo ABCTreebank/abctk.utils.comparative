@@ -1,27 +1,18 @@
-from pathlib import Path
-from typing import Annotated, Iterable, TextIO, Iterator
-import dataclasses
-import json
-import sys
 from enum import Enum
+import dataclasses
+from typing import TextIO, Iterator, Iterable
+import json
 
 import ruamel.yaml
-import typer
 
 import abctk.obj.comparative as aoc
 
-from abctk.utils.comparative.BCCWJ.cli import app as app_BCCWJ
-
-app = typer.Typer()
-
-app.add_typer(app_BCCWJ, name="BCCWJ")
-
-class AnnotationFileFormat(Enum):
+class AnnotationFileFormat(str, Enum):
     YAML = "yaml"
     JSONL = "jsonl"
     TEXT = "txt"
 
-class AnnotationFileStyle(Enum):
+class AnnotationFileStyle(str, Enum):
     BRACKETED = "bracketed"
     """
     Texts are annotated with brackets.
@@ -57,7 +48,7 @@ def load_file(
                             comments = record.get("comments"),
                             ID_v1 = record.get("ID_v1"),
                         )
-                        for record in yaml.load(sys.stdin)
+                        for record in yaml.load(fp)
                     )
                 case AnnotationFileStyle.SEPARATE:
                     records = (
@@ -75,7 +66,7 @@ def load_file(
                             comments = record.get("comments", list()),
                             ID_v1=record.get("ID_v1"),
                         )
-                        for record in yaml.load(sys.stdin)
+                        for record in yaml.load(fp)
                     )
                 case _:
                     raise ValueError(f"{style} is an invalid annotation file style")
@@ -89,7 +80,7 @@ def load_file(
                             comments = record.get("comments"),
                             ID_v1 = record.get("ID_v1"),
                         )
-                        for line in sys.stdin
+                        for line in fp
                         for record in (json.loads(line), )
                     )
                 case AnnotationFileStyle.SEPARATE:
@@ -108,7 +99,7 @@ def load_file(
                             comments = record.get("comments", list()),
                             ID_v1=record.get("ID_v1"),
                         )
-                        for line in sys.stdin
+                        for line in fp
                         for record in (json.loads(line), )
                     )
                 case _:
@@ -155,7 +146,8 @@ def write_file(
         case AnnotationFileFormat.YAML:
             yaml = ruamel.yaml.YAML()
             yaml.version = (1, 2)
-            
+            yaml.width = 1000
+
             match style:
                 case AnnotationFileStyle.BRACKETED:
                     def represent_annot(dumper, instance):
@@ -181,7 +173,7 @@ def write_file(
         case AnnotationFileFormat.TEXT:
             match style:
                 case AnnotationFileStyle.BRACKETED:
-                    sys.stdout.writelines(
+                    buffer.writelines(
                         record.to_brackets_with_ID()
                         for record in records
                     )
@@ -191,211 +183,3 @@ def write_file(
                     raise ValueError(f"{style} is an invalid annotation file style")
         case _:
             raise ValueError(f"{format} is an invalid output file type")
-
-@app.command("encrypt")
-def cmd_encrypt(
-    input_format: Annotated[
-        AnnotationFileFormat,
-        typer.Option(
-             "--input-type", "-i",
-        )
-    ] = AnnotationFileFormat.TEXT,
-    input_style: Annotated[
-        AnnotationFileStyle,
-        typer.Option(
-            "--input-style",
-        )
-    ] = AnnotationFileStyle.SEPARATE,
-    output_format:  Annotated[
-        AnnotationFileFormat,
-        typer.Option(
-            "--output-type", "-o",
-        )
-    ] = AnnotationFileFormat.JSONL,
-    output_style:  Annotated[
-        AnnotationFileStyle,
-        typer.Option(
-            "--output-style", "-s",
-        )
-    ] = AnnotationFileStyle.SEPARATE,
-):
-    records = load_file(
-        sys.stdin,
-        format = input_format,
-        style = input_style,
-    )
-
-    records_encrypted = (
-        dataclasses.replace(
-            rec,
-            tokens = tuple(
-                "⛔" * len(t)
-                for t in rec.tokens
-            )
-        )
-        for rec in records
-    )
-
-    write_file(
-        tuple(records_encrypted),
-        sys.stdout,
-        format = output_format,
-        style = output_style,
-    )
-
-@app.command("decrypt")
-def cmd_decrypt(
-    source: Annotated[
-        Path,
-        typer.Argument(
-            file_okay=True,
-            dir_okay=False,
-            exists=True,
-            help="The file containing the source texts in the JSON format.",
-        ),
-    ],
-    input_format: Annotated[
-        AnnotationFileFormat,
-        typer.Option(
-             "--input-type", "-i",
-        )
-    ] = AnnotationFileFormat.TEXT,
-    input_style: Annotated[
-        AnnotationFileStyle,
-        typer.Option(
-            "--input-style",
-        )
-    ] = AnnotationFileStyle.SEPARATE,
-    output_format:  Annotated[
-        AnnotationFileFormat,
-        typer.Option(
-            "--output-type", "-o",
-        )
-    ] = AnnotationFileFormat.JSONL,
-    output_style:  Annotated[
-        AnnotationFileStyle,
-        typer.Option(
-            "--output-style", "-s",
-        )
-    ] = AnnotationFileStyle.SEPARATE,
-):
-    """
-    Decrypt an annotation file containing encrypted texts.
-    """
-    with open(source) as f:
-        real_texts: dict = json.load(f)
-
-    records = load_file(
-        sys.stdin,
-        format = input_format,
-        style = input_style,
-    )
-
-    def _decipher(record: aoc.CompRecord):
-        ID_parsed = aoc.ABCTComp_BCCWJ_ID.from_string(record.ID)
-        if ID_parsed and (
-            real_text := real_texts.get(
-                f"{ID_parsed.sampleID},{ID_parsed.start_pos}"
-            )
-        ):
-            tokens_changed = []
-            
-            char_pos = 0
-            for t in record.tokens:
-                tokens_changed.append(
-                    real_text[char_pos:char_pos+len(t)]
-                )
-                char_pos += len(t)
-            
-            return dataclasses.replace(
-                record,
-                tokens = tokens_changed,
-            )
-        else:
-            return record
-
-    records_decrypted = (
-        _decipher(rec)
-        for rec in records
-    )
-
-    write_file(
-        tuple(records_decrypted),
-        sys.stdout,
-        format = output_format,
-        style = output_style,
-    )
-
-@app.command("comp2br")
-def comp_to_bracket(
-    input_format: Annotated[
-        AnnotationFileFormat,
-        typer.Option(
-             "--input-type", "-i",
-        )
-    ] = AnnotationFileFormat.TEXT,
-    output_format:  Annotated[
-        AnnotationFileFormat,
-        typer.Option(
-            "--output-type", "-o",
-        )
-    ] = AnnotationFileFormat.JSONL,
-):
-    """
-    Convert comparative JSON data into texts with brackets.
-
-    The input data is given via STDIN in the JSONL format.
-    """
-    records = load_file(
-        sys.stdin,
-        format = input_format,
-        style = AnnotationFileStyle.SEPARATE,
-    )
-    
-    write_file(
-        records,
-        sys.stdout,
-        format = output_format,
-        style = AnnotationFileStyle.BRACKETED,
-    )
-
-@app.command("br2comp")
-def bracket_to_comp(
-    input_format: Annotated[
-        AnnotationFileFormat,
-        typer.Option(
-             "--input-type", "-i",
-        )
-    ] = AnnotationFileFormat.TEXT,
-    output_format: Annotated[
-        AnnotationFileFormat,
-        typer.Option(
-            "--output-type", "-o",
-        )
-    ] = AnnotationFileFormat.JSONL,
-    to_dice: bool = typer.Option(
-        False,
-        "--dice",
-    ),
-):
-    """
-    Convert comparative data in text format into JSON.
-
-    The input data is given via STDIN.
-    Each line corresponds to exactly one example.
-    """
-    records = load_file(
-        sys.stdin,
-        format = input_format,
-        style = AnnotationFileStyle.BRACKETED,
-    )
-
-    if to_dice:
-        records = (rec.dice() for rec in records)
-    
-    write_file(
-        records,
-        sys.stdout,
-        format = output_format,
-        style = AnnotationFileStyle.SEPARATE,
-    )

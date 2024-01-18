@@ -3,6 +3,8 @@ import sys
 import itertools
 from pathlib import Path
 from typing import Iterable, NamedTuple, TextIO, Any, Iterator
+import logging
+logger = logging.getLogger(__name__)
 
 import lxml.etree as etree
 from tqdm import tqdm
@@ -25,9 +27,11 @@ def load_BCCWJ(
     )
     xml_list = tuple(
         itertools.chain.from_iterable(
-            glob.glob(p) for p in BCCWJ_GLOBS
+            glob.glob(p, recursive=True) for p in BCCWJ_GLOBS
         )
     )
+    logger.info(f"Found {len(xml_list)} XML files.")
+    logger.info(f"List of XML files: {' '.join(xml_list)}")
 
     BCCWJ_sentences: dict[BCCWJSentIndex, str] = dict()
 
@@ -53,9 +57,9 @@ def load_BCCWJ(
                 BCCWJ_sentences[
                     BCCWJSentIndex(sampleID, first_pos)
                 ] = "".join(
-                    (s.attrib.get("originalText", s.text or ""))
+                    "".join(s.itertext()).strip()
                     for s in suws
-                ).strip()
+                )
 
     return BCCWJ_sentences
 
