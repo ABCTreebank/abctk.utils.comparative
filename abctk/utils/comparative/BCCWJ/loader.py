@@ -1,5 +1,6 @@
 import glob
 import sys
+import re
 import itertools
 from pathlib import Path
 from typing import Iterable, NamedTuple, TextIO, Any, Iterator
@@ -12,6 +13,7 @@ from tqdm import tqdm
 from abctk.obj.comparative import ABCTComp_BCCWJ_ID
 
 StartPos_UNKNOWN = -1
+_RE_WS = re.compile(r"\s+")
 
 class BCCWJSentIndex(NamedTuple):
     sampleID: str
@@ -57,7 +59,7 @@ def load_BCCWJ(
                 BCCWJ_sentences[
                     BCCWJSentIndex(sampleID, first_pos)
                 ] = "".join(
-                    "".join(s.itertext()).strip()
+                    _RE_WS.sub("", "".join(s.itertext()))
                     for s in suws
                 )
 
