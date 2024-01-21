@@ -32,7 +32,7 @@ def load_file(
         case AnnotationFileFormat.TEXT:
             match style:
                 case AnnotationFileStyle.BRACKETED:
-                    records = aoc.CompRecord.read_bracket_annotation_file(fp)
+                    records = aoc.CompRecord.read_from_txt_bracket(fp)
                 case AnnotationFileStyle.SEPARATE:
                     raise ValueError("The text format does not have the separate style")
                 case _:
@@ -173,10 +173,9 @@ def write_file(
         case AnnotationFileFormat.TEXT:
             match style:
                 case AnnotationFileStyle.BRACKETED:
-                    buffer.writelines(
-                        record.to_brackets_with_ID()
-                        for record in records
-                    )
+                    for record in records:
+                        record.dump_as_txt_bracket(buffer)
+                        _ = buffer.write("\n")
                 case AnnotationFileStyle.SEPARATE:
                     raise ValueError("The text format does not have the separate style")
                 case _:
