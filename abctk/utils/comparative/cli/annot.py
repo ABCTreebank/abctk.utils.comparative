@@ -19,6 +19,7 @@ from abctk.utils.comparative.io import (
     load_file,
     write_file,
 )
+from abctk.utils.comparative.BCCWJ.incorp import get_real_text as get_real_text_BCCWJ
 from abctk.utils.comparative.BCCWJ.loader import BCCWJSentIndex
 
 @dataclass
@@ -64,15 +65,16 @@ def cmd_incorp_text(
             case SourceName.BCCWJ:
                 for rec in obj.annots:
                     if (ID_parsed := aoc.ABCTComp_BCCWJ_ID.from_string(rec.ID)):
-                        if (
-                            real_text := real_texts.get(
-                                BCCWJSentIndex(
-                                    ID_parsed.sampleID,
-                                    ID_parsed.start_pos,
-                                )
-                            )
-                        ):
-                            obj.real_texts[rec.ID] = real_text
+                        found_text = get_real_text_BCCWJ(
+                            BCCWJSentIndex(
+                                ID_parsed.sampleID,
+                                ID_parsed.start_pos,
+                            ),
+                            real_texts,
+                            corpus_id = rec.ID,
+                        )
+                        if found_text:
+                            obj.real_texts[rec.ID] = found_text
                         else:
                             logger.warning(
                                 f"Cannot find the real text for {rec.ID}"
