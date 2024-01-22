@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "abctk.utils.comparative"
 version = "1.0.0"
-description = ""
+description = "ABC Treebank utilities for comparative annotations"
 authors = ["Nori Hayashi <net@hayashi-lin.net>"]
 readme = "README.md"
 packages = [
