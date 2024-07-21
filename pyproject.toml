@@ -1,12 +1,10 @@
 [tool.poetry]
 name = "abctk.utils.comparative"
-version = "1.0.0"
+version = "1.0.1"
 description = "ABC Treebank utilities for comparative annotations"
 authors = ["Nori Hayashi <net@hayashi-lin.net>"]
 readme = "README.md"
-packages = [
-    {include = "abctk/utils/comparative"}
-]
+packages = [{ include = "abctk/utils/comparative" }]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
@@ -15,7 +13,7 @@ ruamel-yaml = "^0.18.5"
 lxml = "^5.0.1"
 tqdm = "^4.66.1"
 pandas = "^2.1.4"
-abctk-obj = {git = "https://github.com/ABCTreebank/abctk.obj"}
+abctk-obj = { git = "https://github.com/ABCTreebank/abctk.obj" }
 
 [tool.poetry.scripts]
 "abctk.utils.comparative" = "abctk.utils.comparative.cli:app"
