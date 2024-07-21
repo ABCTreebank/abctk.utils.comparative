@@ -46,5 +46,9 @@ abctk.utils.comparative annot \
 ## How to build a standalone executable
 
 ```sh
-poetry run pyinstaller --onefile abctk/utils/comparative/__main__.py
+poetry run pyinstaller \
+    --name abctk.utils.comparative_linux_x86-64 \
+    --onefile \
+    --copy-metadata abctk.utils.comparative \
+    abctk/utils/comparative/__main__.py
 ```
