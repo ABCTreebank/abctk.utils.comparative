@@ -15,6 +15,13 @@ app.add_typer(app_BCCWJ, name="BCCWJ")
 app.add_typer(app_annot, name="annot")
 
 
+@app.command("version")
+def cmd_version():
+    import abctk.utils.comparative as c
+
+    typer.echo(c.__version__)
+
+
 @app.callback()
 def callback(
     log_level: Annotated[
