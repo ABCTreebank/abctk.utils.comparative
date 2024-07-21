@@ -5,6 +5,7 @@ import dataclasses
 from dataclasses import dataclass
 import sys
 import logging
+
 logger = logging.getLogger(__name__)
 import pickle
 
@@ -22,20 +23,25 @@ from abctk.utils.comparative.io import (
 from abctk.utils.comparative.BCCWJ.incorp import get_real_text as get_real_text_BCCWJ
 from abctk.utils.comparative.BCCWJ.loader import BCCWJSentIndex
 
+
 @dataclass
 class CliContext:
     annots: list[aoc.CompRecord] = dataclasses.field(default_factory=list)
     real_texts: dict[RecordID | str, str] = dataclasses.field(default_factory=dict)
 
+
 app = typer.Typer(chain=True)
+
 
 @app.callback()
 def callback(ctx: typer.Context):
     # https://stackoverflow.com/a/72156916
     _ = ctx.ensure_object(CliContext)
 
+
 class SourceName(str, Enum):
     BCCWJ = "BCCWJ"
+
 
 @app.command("incorp-text")
 def cmd_incorp_text(
@@ -44,7 +50,7 @@ def cmd_incorp_text(
         SourceName,
         typer.Argument(
             case_sensitive=False,
-        )
+        ),
     ],
     path: Annotated[
         Path,
@@ -64,36 +70,31 @@ def cmd_incorp_text(
         match name:
             case SourceName.BCCWJ:
                 for rec in obj.annots:
-                    if (ID_parsed := aoc.ABCTComp_BCCWJ_ID.from_string(rec.ID)):
+                    if ID_parsed := aoc.ABCTComp_BCCWJ_ID.from_string(rec.ID):
                         found_text = get_real_text_BCCWJ(
                             BCCWJSentIndex(
                                 ID_parsed.sampleID,
                                 ID_parsed.start_pos,
                             ),
                             real_texts,
-                            corpus_id = rec.ID,
+                            corpus_id=rec.ID,
                         )
                         if found_text:
                             obj.real_texts[rec.ID] = found_text
                         else:
-                            logger.warning(
-                                f"Cannot find the real text for {rec.ID}"
-                            )
+                            logger.warning(f"Cannot find the real text for {rec.ID}")
                     else:
-                        logger.warning(
-                            f"Cannot parse the ID {rec.ID}"
-                        )
+                        logger.warning(f"Cannot parse the ID {rec.ID}")
             case _:
                 raise NotImplementedError
+
 
 @app.command("encrypt")
 def cmd_encrypt(ctx: typer.Context):
     obj = ctx.ensure_object(CliContext)
     for rec in obj.annots:
-        rec.tokens = tuple(
-            "⛔" * len(t)
-            for t in rec.tokens
-        )
+        rec.tokens = tuple("⛔" * len(t) for t in rec.tokens)
+
 
 @app.command("decrypt")
 def cmd_decrypt(
@@ -108,17 +109,13 @@ def cmd_decrypt(
         ID_parsed = aoc.ABCTComp_BCCWJ_ID.from_string(record.ID)
         real_texts = obj.real_texts
         if ID_parsed:
-            if (
-                real_text := real_texts.get(record.ID, "")
-            ):
+            if real_text := real_texts.get(record.ID, ""):
                 real_text_len = len(real_text)
                 tokens_changed: list[str] = []
 
                 char_pos = 0
                 for t in record.tokens:
-                    tokens_changed.append(
-                        real_text[char_pos:char_pos+len(t)]
-                    )
+                    tokens_changed.append(real_text[char_pos : char_pos + len(t)])
                     char_pos += len(t)
 
                 if char_pos < real_text_len:
@@ -139,13 +136,10 @@ def cmd_decrypt(
 
                 record.tokens = tokens_changed
             else:
-                logging.warning(
-                    f"Cannot find the real text for {record.ID}"
-                )
+                logging.warning(f"Cannot find the real text for {record.ID}")
         else:
-            logging.warning(
-                f"Cannot parse the ID {record.ID}"
-            )
+            logging.warning(f"Cannot parse the ID {record.ID}")
+
 
 @app.command("load")
 def cmd_load(
@@ -163,16 +157,19 @@ def cmd_load(
     format: Annotated[
         AnnotationFileFormat,
         typer.Option(
-             "--ext", "--extension", "-e",
+            "--ext",
+            "--extension",
+            "-e",
             case_sensitive=False,
-        )
+        ),
     ] = AnnotationFileFormat.TEXT,
     style: Annotated[
         AnnotationFileStyle,
         typer.Option(
-            "--style", "-s",
+            "--style",
+            "-s",
             case_sensitive=False,
-        )
+        ),
     ] = AnnotationFileStyle.SEPARATE,
 ):
     """
@@ -184,8 +181,8 @@ def cmd_load(
 
         records = load_file(
             fp,
-            format = format,
-            style = style,
+            format=format,
+            style=style,
         )
 
         obj = ctx.ensure_object(CliContext)
@@ -200,6 +197,7 @@ def cmd_load(
         if fp and fp != sys.stdin:
             fp.close()
 
+
 @app.command("count")
 def cmd_count(
     ctx: typer.Context,
@@ -209,6 +207,7 @@ def cmd_count(
     """
     obj = ctx.ensure_object(CliContext)
     logger.info(f"count: {len(obj.annots)} records in total.")
+
 
 @app.command("write")
 def cmd_write(
@@ -225,16 +224,19 @@ def cmd_write(
     format: Annotated[
         AnnotationFileFormat,
         typer.Option(
-             "--ext", "--extension", "-e",
+            "--ext",
+            "--extension",
+            "-e",
             case_sensitive=False,
-        )
+        ),
     ] = AnnotationFileFormat.TEXT,
     style: Annotated[
         AnnotationFileStyle,
         typer.Option(
-            "--style", "-s",
+            "--style",
+            "-s",
             case_sensitive=False,
-        )
+        ),
     ] = AnnotationFileStyle.SEPARATE,
 ):
     """
@@ -246,8 +248,8 @@ def cmd_write(
         write_file(
             obj.annots,
             sys.stdout,
-            format = format,
-            style = style,
+            format=format,
+            style=style,
         )
     else:
         if not path.exists() or typer.confirm(
@@ -258,8 +260,8 @@ def cmd_write(
                 write_file(
                     obj.annots,
                     f,
-                    format = format,
-                    style = style,
+                    format=format,
+                    style=style,
                 )
             logger.info(f"Written to {path.absolute()}.")
         else:

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Annotated
 import logging
+
 logger = logging.getLogger(__name__)
 
 import typer
@@ -13,19 +14,21 @@ app = typer.Typer()
 app.add_typer(app_BCCWJ, name="BCCWJ")
 app.add_typer(app_annot, name="annot")
 
+
 @app.callback()
 def callback(
     log_level: Annotated[
         int,
         typer.Option(
-            "--log-level", "-l",
-            min = 0,
-            max = logging.CRITICAL,
-        )
+            "--log-level",
+            "-l",
+            min=0,
+            max=logging.CRITICAL,
+        ),
     ] = logging.WARNING,
 ):
     logging.basicConfig(
-        level = log_level,
-        format = "[%(name)s %(levelname)s] %(message)s",
-        force = True,
+        level=log_level,
+        format="[%(name)s %(levelname)s] %(message)s",
+        force=True,
     )

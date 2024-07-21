@@ -3,6 +3,7 @@ from typing import Annotated
 import pickle
 import sys
 import logging
+
 logger = logging.getLogger(__name__)
 
 import typer
@@ -10,6 +11,7 @@ import typer
 import abctk.utils.comparative.BCCWJ.loader as gs
 
 app = typer.Typer()
+
 
 @app.command("cache")
 def cmd_cache(
@@ -19,7 +21,7 @@ def cmd_cache(
             file_okay=False,
             dir_okay=True,
             exists=True,
-            help="The folder containing the BCCWJ corpus."
+            help="The folder containing the BCCWJ corpus.",
         ),
     ],
     output_file: Annotated[
@@ -28,7 +30,7 @@ def cmd_cache(
             file_okay=True,
             dir_okay=False,
             allow_dash=True,
-        )
+        ),
     ],
 ):
     corpus = gs.load_BCCWJ(corpus_folder)
