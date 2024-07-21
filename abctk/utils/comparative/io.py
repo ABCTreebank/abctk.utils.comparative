@@ -141,6 +141,7 @@ def write_file(
                             ensure_ascii = False,
                             separators=(",", ":"),
                         )
+                        buffer.write("\n")
                 case _:
                     raise ValueError(f"{style} is an invalid annotation file style")
         case AnnotationFileFormat.YAML:
